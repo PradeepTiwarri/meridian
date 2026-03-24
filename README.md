@@ -16,13 +16,17 @@
 
 | Metric | Value |
 |---|---|
-| **Throughput** | **868 RPS** under 500 concurrent users |
-| **Total Events Processed** | 738,000+ |
-| **Ingestion Latency (P50)** | 12ms |
-| **Ingestion Latency (P99)** | 120ms |
+| **Peak Throughput** | **879 RPS** under 500 concurrent users |
+| **Total Events Processed** | 1,062,535 |
+| **Ingestion Latency (P50)** | 10ms |
+| **Ingestion Latency (P99)** | 590ms |
 | **ML Processing Time** | ~18ms/event |
 | **Error Rate** | **0%** under massive transaction collisions |
 | **Redis Footprint** | ~12MB RAM, 12% CPU under load |
+
+### Locust Load Test Report (500 Concurrent Users)
+
+![Locust Benchmark — 879 RPS, 0% Error Rate, 1M+ Requests](locust-benchmark.png)
 
 ---
 
@@ -99,16 +103,9 @@
 
 6. **RevOps Audit** — For severe price swings (>5% shift), a LangChain agent powered by Llama 3 (via Groq) queries corporate revenue playbooks stored in Supabase pgvector (RAG) and issues `APPROVE` or `OVERRIDE` decisions.
 
-7. **Atomic Commit** — The new multiplier is written to Redis using `WATCH/MULTI/EXEC` optimistic locking with exponential backoff, ensuring zero data corruption under 868+ RPS.
+7. **Atomic Commit** — The new multiplier is written to Redis using `WATCH/MULTI/EXEC` optimistic locking with exponential backoff, ensuring zero data corruption under 879+ RPS.
 
 8. **Real-Time Broadcast** — Updated prices propagate via Redis Pub/Sub → NestJS WebSockets → Admin Dashboard charts within ~50ms of the original event.
-
-### The Admin Command Center
-
-- **Synchronized Charts** — `DynamicPriceChart` (line) and `TrafficVolumeChart` (bar) share a global product filter with toggleable pills per product.
-- **Live Session History** — 500-tick rolling window with optimized Recharts rendering (`dot={false}`, `isAnimationActive={false}`, `minTickGap={50}`).
-- **RevOps Agent Terminal** — Displays the full Chain-of-Thought reasoning of the LangChain auditor in real-time (TRIGGER → RETRIEVAL → REASONING → DECISION).
-- **Manual Override Panel** — Admins can lock any product's price multiplier, instantly overriding the ML system. Locked prices bypass the ML pipeline and take effect within 1 WebSocket frame.
 
 ---
 
@@ -169,7 +166,7 @@ npm run dev
 ```bash
 cd ml-engine
 
-# Option A: Chaos Engine (Boom & Bust simulator)
+# Option A: Chaos Engine (Boom & Bust simulator with perf report)
 python chaos_engine_2.py
 
 # Option B: Locust (Enterprise load testing with web UI)
@@ -177,25 +174,6 @@ python chaos_engine_2.py
 # → Open http://localhost:8089
 # → Host: http://localhost:4000, Users: 500, Spawn Rate: 50
 ```
-
----
-
-## 📈 Load Testing Results
-
-### Chaos Engine 2 — Boom & Bust Market Simulator
-
-Alternates between **Viral Demand** (60% carts, 15% stock drops → prices UP) and **Competitor War** (30% comp drops, 50% dwell → prices DOWN) every 15 seconds. Includes per-request latency tracking with a Ctrl+C performance report (RPS, P50, P95, P99, error rate).
-
-### Locust — 500 Concurrent Users
-
-| Metric | Value |
-|---|---|
-| Peak RPS | 868 |
-| Median Response (P50) | 12ms |
-| P95 Response | 52ms |
-| P99 Response | 120ms |
-| Error Rate | 0% |
-| Total Requests | 738,000+ |
 
 ---
 
@@ -207,7 +185,7 @@ Traditional batch ML requires collecting data → retraining → deploying. In a
 
 ### Why Optimistic Locking Instead of Distributed Locks?
 
-Redis `WATCH/MULTI/EXEC` provides optimistic concurrency control without blocking. Under 868 RPS with 500 concurrent users, pessimistic locks (e.g., Redlock) would create severe contention. Our approach retries with exponential backoff + jitter, achieving **0% error rate** under load.
+Redis `WATCH/MULTI/EXEC` provides optimistic concurrency control without blocking. Under 879 RPS with 500 concurrent users, pessimistic locks (e.g., Redlock) would create severe contention. Our approach retries with exponential backoff + jitter, achieving **0% error rate** under load.
 
 ### Why EMA Smoothing?
 
@@ -251,7 +229,7 @@ meridian/
 │           ├── HumanOverridePanel.tsx
 │           └── useAdminSocket.ts
 │
-└── docs/                       # Architecture documentation
+└── locust-benchmark.png        # Load test proof (879 RPS)
 ```
 
 ---
@@ -263,5 +241,5 @@ MIT
 ---
 
 <p align="center">
-  Built with ☕ and Claude by <strong>Pradeep Tiwari</strong>
+  Built by <strong>Pradeep Tiwari</strong>
 </p>

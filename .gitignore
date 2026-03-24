@@ -29,6 +29,9 @@ logs
 # Walkthrough notes (personal)
 walkthrough*
 
+# Docs (personal notes, Locust HTML reports)
+docs/
+
 # Gemini AI agent artifacts
 .gemini/
 .agent/
