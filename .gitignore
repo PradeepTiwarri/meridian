@@ -1,0 +1,35 @@
+# =============================================================================
+# Meridian — Root .gitignore
+# =============================================================================
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+logs
+*.log
+
+# Locust HTML reports
+*.html
+
+# Walkthrough notes (personal)
+walkthrough*
+
+# Gemini AI agent artifacts
+.gemini/
+.agent/
+.agents/
