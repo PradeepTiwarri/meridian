@@ -23,11 +23,7 @@ import Redis from 'ioredis';
 @WebSocketGateway({
   namespace: '/admin-stream',
   cors: {
-    origin: [
-      'http://localhost:3000',
-      'http://localhost:3001',
-      'http://localhost:3002',
-    ],
+    origin: '*',
     credentials: true,
   },
 })
