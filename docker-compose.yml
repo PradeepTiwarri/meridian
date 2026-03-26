@@ -1,0 +1,77 @@
+# =============================================================================
+# Meridian Ecosystem — Docker Compose (AWS EC2 Free Tier — 1GB RAM)
+# =============================================================================
+# Memory budget: Redis ~100MB + ML Engine ~400MB + API Gateway ~300MB = ~800MB
+# Leaves ~200MB for OS overhead
+# =============================================================================
+
+services:
+  # ─── Redis ──────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --maxmemory 80mb --maxmemory-policy allkeys-lru --save ""
+    deploy:
+      resources:
+        limits:
+          memory: 100M
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  # ─── ML Engine (FastAPI + River) ────────────────────────
+  ml-engine:
+    build:
+      context: ./ml-engine
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
+      - SUPABASE_URL=${SUPABASE_URL:-}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY:-}
+      - PORT=8000
+    deploy:
+      resources:
+        limits:
+          memory: 400M
+    restart: unless-stopped
+
+  # ─── API Gateway (NestJS) ──────────────────────────────
+  api-gateway:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "4000:4000"
+    depends_on:
+      redis:
+        condition: service_healthy
+      ml-engine:
+        condition: service_started
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - SUPABASE_URL=${SUPABASE_URL:-}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY:-}
+      - FRONTEND_URL=${FRONTEND_URL:-*}
+      - ML_ENGINE_URL=http://ml-engine:8000
+      - PORT=4000
+      - NODE_ENV=production
+    deploy:
+      resources:
+        limits:
+          memory: 300M
+    restart: unless-stopped
+
+volumes:
+  redis_data:

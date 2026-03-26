@@ -1,0 +1,11 @@
+venv
+__pycache__
+.env
+.git
+.gitignore
+*.md
+*.pyc
+chaos_engine*.py
+locustfile.py
+seed_playbooks.py
+supabase_setup.sql
