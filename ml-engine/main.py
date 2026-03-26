@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 from contextlib import asynccontextmanager
 
 import redis.asyncio as aioredis
@@ -111,9 +112,14 @@ app = FastAPI(
 )
 
 # CORS
+allowed_origins = os.getenv(
+    "ALLOWED_ORIGINS",
+    "http://localhost:3000,http://localhost:3001,http://localhost:4000"
+).split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:3001", "http://localhost:4000"],
+    allow_origins=allowed_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -162,3 +168,17 @@ async def get_price(product_id: str):
         "multiplier": multiplier,
         "source": "ml_predicted" if multiplier != 1.0 else "default",
     }
+
+
+# =============================================================================
+# Programmatic entry point (Docker / cloud)
+# =============================================================================
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(
+        "main:app",
+        host="0.0.0.0",
+        port=int(os.getenv("PORT", 8000)),
+        reload=True,
+    )

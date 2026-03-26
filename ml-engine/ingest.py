@@ -93,7 +93,7 @@ async def _process_event(event: TelemetryPayload) -> None:
         # ─── Compute target for online learning ──────────────────
         target = compute_target_multiplier(event, state)
 
-        # ─── Audit cooldown check (60s per product) ─────────────
+        # ─── Audit cooldown check (15s per product) ─────────────
         cooldown_key = f"last_audit:{product_id}"
         audit_pending = await redis_client.exists(cooldown_key)
         skip_audit = bool(audit_pending)
@@ -111,7 +111,7 @@ async def _process_event(event: TelemetryPayload) -> None:
 
         # Set cooldown key if audit actually ran
         if was_audited:
-            await redis_client.set(cooldown_key, "1", ex=60)
+            await redis_client.set(cooldown_key, "1", ex=15)
 
         # ─── Update state with new multiplier ────────────────────
         state.price_multiplier = multiplier
