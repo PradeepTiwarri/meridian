@@ -5,8 +5,10 @@ import { products } from "@/lib/products";
 import { ProductCard } from "@/components/ProductCard";
 import { Navbar } from "@/components/Navbar";
 import { EcosystemControls } from "@/components/EcosystemControls";
+import { AboutArchitecture } from "@/components/AboutArchitecture";
 import { TelemetryProvider } from "@/providers/TelemetryProvider";
 import { CartProvider } from "@/providers/CartProvider";
+import Link from "next/link";
 
 // =============================================================================
 // Meridian Storefront — Catalog Page
@@ -68,6 +70,17 @@ export default function CatalogPage() {
                     24/7 Support
                   </span>
                 </div>
+                <div className="mt-8">
+                  <Link
+                    href="/architecture"
+                    className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:text-primary/80 transition-colors group"
+                  >
+                    Read the full architecture breakdown
+                    <svg className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+                    </svg>
+                  </Link>
+                </div>
               </div>
             </div>
             {/* Decorative gradient blob */}
@@ -113,6 +126,9 @@ export default function CatalogPage() {
               ))}
             </div>
           </section>
+
+          {/* About / How It Works — Architecture */}
+          <AboutArchitecture />
 
           {/* Trust bar */}
           <section className="border-t border-card-border bg-card">

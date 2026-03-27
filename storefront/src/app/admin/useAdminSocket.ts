@@ -31,13 +31,16 @@ export interface PriceUpdate {
 
 export interface TrafficBucket {
   time: string;
+  ts: number;           // epoch ms — used for rolling window filter
   demand: number;       // page_view + cart_addition + dwell_time
   interventions: number; // competitor_price_sim + inventory_drop_sim
 }
 
-const MAX_EVENTS = 100;
+const MAX_EVENTS = 200;
 const MAX_CHART_POINTS = 500;
 const BUCKET_INTERVAL_MS = 4000; // aggregate every 4s
+const ROLLING_WINDOW_MS = 90 * 60 * 1000; // 90 minutes
+const MAX_BUCKETS = 1350; // 90 min / 4s per bucket
 
 const DEMAND_EVENTS = new Set(["page_view", "cart_addition", "dwell_time_seconds"]);
 const INTERVENTION_EVENTS = new Set(["competitor_price_sim", "inventory_drop_sim"]);
@@ -70,10 +73,11 @@ export function useAdminSocket() {
     setPriceHistory((prev) => [...prev.slice(-(MAX_CHART_POINTS * 5 - 1)), data]);
   }, []);
 
-  // Traffic bucketing interval
+  // Traffic bucketing interval + 90-min rolling window prune
   useEffect(() => {
     const interval = setInterval(() => {
       const { demand, interventions } = bucketRef.current;
+      const now = Date.now();
       if (demand > 0 || interventions > 0) {
         const bucket: TrafficBucket = {
           time: new Date().toLocaleTimeString([], {
@@ -81,10 +85,15 @@ export function useAdminSocket() {
             minute: "2-digit",
             second: "2-digit",
           }),
+          ts: now,
           demand,
           interventions,
         };
-        setTrafficBuckets((prev) => [...prev.slice(-124), bucket]);
+        setTrafficBuckets((prev) => {
+          const cutoff = now - ROLLING_WINDOW_MS;
+          const pruned = prev.filter((b) => b.ts > cutoff);
+          return [...pruned.slice(-(MAX_BUCKETS - 1)), bucket];
+        });
         bucketRef.current = { demand: 0, interventions: 0 };
       }
     }, BUCKET_INTERVAL_MS);

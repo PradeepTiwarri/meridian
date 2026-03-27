@@ -4,6 +4,8 @@ import React from "react";
 import { useCart } from "@/providers/CartProvider";
 import { formatPrice } from "@/lib/products";
 
+import Link from "next/link";
+
 // =============================================================================
 // Meridian Storefront — Navigation Bar
 // =============================================================================
@@ -38,12 +40,12 @@ export function Navbar() {
             >
               Catalog
             </a>
-            <a
-              href="#pricing"
+            <Link
+              href="/architecture"
               className="text-sm font-medium text-muted hover:text-primary"
             >
-              Pricing
-            </a>
+              Architecture
+            </Link>
             <a
               href="#docs"
               className="text-sm font-medium text-muted hover:text-primary"
