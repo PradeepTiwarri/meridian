@@ -4,6 +4,7 @@ import { useRef, useEffect, useState, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { useAdminSocket, TelemetryEvent, AgentThought } from "./useAdminSocket";
 import HumanOverridePanel from "./HumanOverridePanel";
+import SystemSpecsTab from "./SystemSpecsTab";
 
 // Dynamic imports with SSR disabled — prevents Recharts ResponsiveContainer hydration mismatch
 const DynamicPriceChart = dynamic(() => import("./DynamicPriceChart"), {
@@ -126,6 +127,7 @@ export default function AdminDashboard() {
 
   // ─── Global product filter ──────────────────────────────
   const [activeProducts, setActiveProducts] = useState<string[]>([...ALL_PRODUCTS]);
+  const [activeTab, setActiveTab] = useState<"command-center" | "specs">("command-center");
 
   const toggleProduct = useCallback((pid: string) => {
     setActiveProducts((prev) =>
@@ -180,118 +182,148 @@ export default function AdminDashboard() {
         </div>
       </header>
 
-      {/* ─── Content ────────────────────────────────────────── */}
-      <div className="px-3 sm:px-4 py-4 max-w-[1600px] mx-auto space-y-4">
-
-        {/* ═══ ROW 1: Telemetry + Terminal ════════════════════ */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {/* Telemetry Feed */}
-          <div className="bg-white rounded-lg border border-slate-200 shadow-sm">
-            <div className="flex items-center justify-between px-3 py-2 border-b border-slate-100">
-              <h2 className="text-xs font-semibold tracking-wider text-slate-500 uppercase flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
-                Market Telemetry
-              </h2>
-              <span className="text-[10px] text-slate-400">{telemetry.length} events</span>
-            </div>
-            <div ref={feedRef} className="h-[300px] sm:h-[380px] overflow-y-auto overflow-x-auto px-1 py-1">
-              {telemetry.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-slate-400 gap-1">
-                  <span className="text-2xl">📡</span>
-                  <p className="text-xs">Waiting for events…</p>
-                </div>
-              ) : (
-                telemetry.map((event, i) => <TelemetryRow key={i} event={event} />)
-              )}
-            </div>
-          </div>
-
-          {/* Agent Terminal */}
-          <div className="bg-slate-900 rounded-lg border border-slate-700 shadow-sm overflow-hidden flex flex-col">
-            <div className="flex items-center gap-2 px-3 py-2 bg-slate-800/80 border-b border-slate-700/50 shrink-0">
-              <span className="w-2.5 h-2.5 rounded-full bg-red-500/70" />
-              <span className="w-2.5 h-2.5 rounded-full bg-yellow-500/70" />
-              <span className="w-2.5 h-2.5 rounded-full bg-green-500/70" />
-              <span className="text-[10px] text-slate-500 ml-1.5 font-mono">
-                revops-agent@meridian ~/audit
-              </span>
-              <span className="ml-auto text-[10px] text-slate-600 font-mono">{thoughts.length} lines</span>
-            </div>
-            <div ref={terminalRef} className="h-[280px] sm:h-[350px] overflow-y-auto overflow-x-auto p-3 font-mono text-[12px] leading-5">
-              {thoughts.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-slate-600 gap-1">
-                  <span className="text-2xl">🤖</span>
-                  <p className="text-xs">Agent idle</p>
-                  <p className="text-[10px] text-slate-700 font-mono mt-1">$ watch --multiplier &gt; [0.90, 1.10]</p>
-                  <span className="inline-block w-1.5 h-3 bg-emerald-400 mt-1 animate-pulse" />
-                </div>
-              ) : (
-                thoughts.map((thought, i) => <TerminalLine key={i} thought={thought} />)
-              )}
-              {thoughts.length > 0 && (
-                <div className="flex items-center gap-1 mt-1">
-                  <span className="text-emerald-400 text-[10px]">$</span>
-                  <span className="inline-block w-1.5 h-3 bg-emerald-400 animate-pulse" />
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* ═══ FILTER BAR ═════════════════════════════════ */}
-        <div className="bg-white rounded-lg border border-slate-200 shadow-sm px-4 py-2.5 flex items-center gap-3 flex-wrap">
-          <span className="text-[10px] font-semibold tracking-wider text-slate-400 uppercase shrink-0">
-            Filter
-          </span>
-          <div className="h-4 w-px bg-slate-200" />
-          {ALL_PRODUCTS.map((pid) => {
-            const isActive = activeProducts.includes(pid);
-            const color = PRODUCT_COLORS[pid];
+      {/* ─── Tab Nav ─────────────────────────────────────── */}
+      <div className="bg-white border-b border-slate-200 px-3 sm:px-4">
+        <div className="max-w-[1600px] mx-auto flex gap-0">
+          {(["command-center", "specs"] as const).map((tab) => {
+            const isActive = activeTab === tab;
+            const label = tab === "command-center" ? "Live Command Center" : "System & ML Specs";
             return (
               <button
-                key={pid}
-                onClick={() => toggleProduct(pid)}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all cursor-pointer border ${
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`px-4 py-2.5 text-xs font-semibold tracking-wide transition-colors cursor-pointer border-b-2 ${
                   isActive
-                    ? "text-white shadow-sm"
-                    : "text-slate-400 bg-white border-slate-200 hover:border-slate-300"
+                    ? "border-teal-500 text-teal-700"
+                    : "border-transparent text-slate-400 hover:text-slate-600"
                 }`}
-                style={
-                  isActive
-                    ? { backgroundColor: color, borderColor: color }
-                    : undefined
-                }
               >
-                <span
-                  className={`w-1.5 h-1.5 rounded-full ${isActive ? "bg-white/70" : "bg-slate-300"}`}
-                />
-                {PRODUCT_LABELS[pid]}
+                {label}
               </button>
             );
           })}
-          <div className="h-4 w-px bg-slate-200" />
-          <button
-            onClick={toggleAll}
-            className="text-[10px] font-semibold text-slate-500 hover:text-slate-700 px-2 py-1 rounded-md hover:bg-slate-100 transition-colors cursor-pointer"
-          >
-            {activeProducts.length === ALL_PRODUCTS.length ? "Hide All" : "Show All"}
-          </button>
         </div>
+      </div>
 
-        {/* ═══ ROW 2: Price Chart (2/3) + Traffic (1/3) ══════ */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div className="lg:col-span-2 min-w-0 overflow-x-auto">
-            <DynamicPriceChart priceHistory={priceHistory} activeProducts={activeProducts} />
-          </div>
-          <div className="lg:col-span-1 min-w-0 overflow-x-auto">
-            <TrafficVolumeChart trafficBuckets={trafficBuckets} activeProducts={activeProducts} />
-          </div>
-        </div>
+      {/* ─── Content ────────────────────────────────────────── */}
+      <div className="px-3 sm:px-4 py-4 max-w-[1600px] mx-auto space-y-4">
 
-        {/* ═══ ROW 3: Override Controls ══════════════════════ */}
-        <div className="pb-4">
-          <HumanOverridePanel priceHistory={priceHistory} />
-        </div>
+        {activeTab === "command-center" && (
+          <>
+            {/* ═══ ROW 1: Telemetry + Terminal ════════════════════ */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {/* Telemetry Feed */}
+              <div className="bg-white rounded-lg border border-slate-200 shadow-sm">
+                <div className="flex items-center justify-between px-3 py-2 border-b border-slate-100">
+                  <h2 className="text-xs font-semibold tracking-wider text-slate-500 uppercase flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
+                    Market Telemetry
+                  </h2>
+                  <span className="text-[10px] text-slate-400">{telemetry.length} events</span>
+                </div>
+                <div ref={feedRef} className="h-[300px] sm:h-[380px] overflow-y-auto overflow-x-auto px-1 py-1">
+                  {telemetry.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-full text-slate-400 gap-1">
+                      <span className="text-2xl">📡</span>
+                      <p className="text-xs">Waiting for events…</p>
+                    </div>
+                  ) : (
+                    telemetry.map((event, i) => <TelemetryRow key={i} event={event} />)
+                  )}
+                </div>
+              </div>
+
+              {/* Agent Terminal */}
+              <div className="bg-slate-900 rounded-lg border border-slate-700 shadow-sm overflow-hidden flex flex-col">
+                <div className="flex items-center gap-2 px-3 py-2 bg-slate-800/80 border-b border-slate-700/50 shrink-0">
+                  <span className="w-2.5 h-2.5 rounded-full bg-red-500/70" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-yellow-500/70" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-green-500/70" />
+                  <span className="text-[10px] text-slate-500 ml-1.5 font-mono">
+                    revops-agent@meridian ~/audit
+                  </span>
+                  <span className="ml-auto text-[10px] text-slate-600 font-mono">{thoughts.length} lines</span>
+                </div>
+                <div ref={terminalRef} className="h-[280px] sm:h-[350px] overflow-y-auto overflow-x-auto p-3 font-mono text-[12px] leading-5">
+                  {thoughts.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-full text-slate-600 gap-1">
+                      <span className="text-2xl">🤖</span>
+                      <p className="text-xs">Agent idle</p>
+                      <p className="text-[10px] text-slate-700 font-mono mt-1">$ watch --multiplier &gt; [0.90, 1.10]</p>
+                      <span className="inline-block w-1.5 h-3 bg-emerald-400 mt-1 animate-pulse" />
+                    </div>
+                  ) : (
+                    thoughts.map((thought, i) => <TerminalLine key={i} thought={thought} />)
+                  )}
+                  {thoughts.length > 0 && (
+                    <div className="flex items-center gap-1 mt-1">
+                      <span className="text-emerald-400 text-[10px]">$</span>
+                      <span className="inline-block w-1.5 h-3 bg-emerald-400 animate-pulse" />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* ═══ FILTER BAR ═════════════════════════════════ */}
+            <div className="bg-white rounded-lg border border-slate-200 shadow-sm px-4 py-2.5 flex items-center gap-3 flex-wrap">
+              <span className="text-[10px] font-semibold tracking-wider text-slate-400 uppercase shrink-0">
+                Filter
+              </span>
+              <div className="h-4 w-px bg-slate-200" />
+              {ALL_PRODUCTS.map((pid) => {
+                const isActive = activeProducts.includes(pid);
+                const color = PRODUCT_COLORS[pid];
+                return (
+                  <button
+                    key={pid}
+                    onClick={() => toggleProduct(pid)}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all cursor-pointer border ${
+                      isActive
+                        ? "text-white shadow-sm"
+                        : "text-slate-400 bg-white border-slate-200 hover:border-slate-300"
+                    }`}
+                    style={
+                      isActive
+                        ? { backgroundColor: color, borderColor: color }
+                        : undefined
+                    }
+                  >
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full ${isActive ? "bg-white/70" : "bg-slate-300"}`}
+                    />
+                    {PRODUCT_LABELS[pid]}
+                  </button>
+                );
+              })}
+              <div className="h-4 w-px bg-slate-200" />
+              <button
+                onClick={toggleAll}
+                className="text-[10px] font-semibold text-slate-500 hover:text-slate-700 px-2 py-1 rounded-md hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                {activeProducts.length === ALL_PRODUCTS.length ? "Hide All" : "Show All"}
+              </button>
+            </div>
+
+            {/* ═══ ROW 2: Price Chart (2/3) + Traffic (1/3) ══════ */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <div className="lg:col-span-2 min-w-0 overflow-x-auto">
+                <DynamicPriceChart priceHistory={priceHistory} activeProducts={activeProducts} />
+              </div>
+              <div className="lg:col-span-1 min-w-0 overflow-x-auto">
+                <TrafficVolumeChart trafficBuckets={trafficBuckets} activeProducts={activeProducts} />
+              </div>
+            </div>
+
+            {/* ═══ ROW 3: Override Controls ══════════════════════ */}
+            <div className="pb-4">
+              <HumanOverridePanel priceHistory={priceHistory} />
+            </div>
+          </>
+        )}
+
+        {/* TAB 2: System & ML Specs — Animated */}
+        {activeTab === "specs" && <SystemSpecsTab />}
       </div>
 
       <style jsx>{`

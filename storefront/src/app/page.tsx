@@ -8,19 +8,21 @@ import { EcosystemControls } from "@/components/EcosystemControls";
 import { AboutArchitecture } from "@/components/AboutArchitecture";
 import { TelemetryProvider } from "@/providers/TelemetryProvider";
 import { CartProvider } from "@/providers/CartProvider";
+import { PriceProvider } from "@/providers/PriceProvider";
 import Link from "next/link";
 
 // =============================================================================
 // Meridian Storefront — Catalog Page
 // =============================================================================
 // This is the primary product catalog. It wraps children in:
-//   CartProvider → TelemetryProvider
+//   CartProvider → PriceProvider → TelemetryProvider
 // TelemetryProvider auto-fires page_view & dwell_time events.
 // =============================================================================
 
 export default function CatalogPage() {
   return (
     <CartProvider>
+      <PriceProvider>
       <TelemetryProvider page="catalog">
         <Navbar />
 
@@ -67,7 +69,7 @@ export default function CatalogPage() {
                     <svg className="w-4 h-4 text-success" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.06l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
                     </svg>
-                    24/7 Support
+                    1,000,000+ RPS Tested
                   </span>
                 </div>
                 <div className="mt-8">
@@ -130,26 +132,7 @@ export default function CatalogPage() {
           {/* About / How It Works — Architecture */}
           <AboutArchitecture />
 
-          {/* Trust bar */}
-          <section className="border-t border-card-border bg-card">
-            <div className="max-w-7xl mx-auto px-6 lg:px-8 py-10">
-              <p className="text-center text-xs text-muted-foreground mb-6 uppercase tracking-widest font-semibold">
-                Powering the infrastructure behind
-              </p>
-              <div className="flex items-center justify-center gap-6 sm:gap-12 flex-wrap opacity-40">
-                {["Stripe", "Vercel", "Supabase", "Linear", "Resend"].map(
-                  (brand) => (
-                    <span
-                      key={brand}
-                      className="text-lg font-bold text-foreground tracking-tight"
-                    >
-                      {brand}
-                    </span>
-                  )
-                )}
-              </div>
-            </div>
-          </section>
+
         </main>
 
         {/* Footer */}
@@ -172,6 +155,7 @@ export default function CatalogPage() {
         {/* Floating Demo Controls */}
         <EcosystemControls />
       </TelemetryProvider>
+      </PriceProvider>
     </CartProvider>
   );
 }
