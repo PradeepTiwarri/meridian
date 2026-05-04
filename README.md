@@ -21,7 +21,7 @@
 | **Ingestion Latency (P50)** | 10ms |
 | **Ingestion Latency (P99)** | 590ms |
 | **ML Processing Time** | ~18ms/event |
-| **Error Rate** | **0%** under massive transaction collisions |
+| **Error Rate** | **~7%** under massive transaction collisions |
 | **Redis Footprint** | ~12MB RAM, 12% CPU under load |
 
 ### Locust Load Test Report (500 Concurrent Users)
