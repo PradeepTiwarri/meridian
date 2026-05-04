@@ -36,6 +36,17 @@ export class EventsGateway
   private subscriber!: Redis;
   private readonly logger = new Logger('EventsGateway');
 
+  // ─── In-memory catch-up buffers (max 50 items each) ──────────
+  private static readonly MAX_BUFFER = 50;
+  private telemetryBuffer: unknown[] = [];
+  private thoughtBuffer: unknown[] = [];
+  private priceBuffer: unknown[] = [];
+
+  private pushToBuffer(buf: unknown[], item: unknown): void {
+    buf.push(item);
+    if (buf.length > EventsGateway.MAX_BUFFER) buf.shift();
+  }
+
   constructor(private readonly configService: ConfigService) {}
 
   // ─── Lifecycle ────────────────────────────────────────────────
@@ -93,20 +104,27 @@ export class EventsGateway
         const parsed = JSON.parse(message);
 
         if (channel === 'meridian_telemetry_stream') {
+          this.pushToBuffer(this.telemetryBuffer, parsed);
           this.server.emit('live_telemetry', parsed);
         } else if (channel === 'meridian_agent_logs') {
+          this.pushToBuffer(this.thoughtBuffer, parsed);
           this.server.emit('agent_thought', parsed);
         } else if (channel === 'meridian_price_updates') {
+          this.pushToBuffer(this.priceBuffer, parsed);
           this.server.emit('price_chart_update', parsed);
         }
       } catch {
         // If the message isn't valid JSON, broadcast it raw
+        const raw = { raw: message };
         if (channel === 'meridian_telemetry_stream') {
-          this.server.emit('live_telemetry', { raw: message });
+          this.pushToBuffer(this.telemetryBuffer, raw);
+          this.server.emit('live_telemetry', raw);
         } else if (channel === 'meridian_agent_logs') {
-          this.server.emit('agent_thought', { raw: message });
+          this.pushToBuffer(this.thoughtBuffer, raw);
+          this.server.emit('agent_thought', raw);
         } else if (channel === 'meridian_price_updates') {
-          this.server.emit('price_chart_update', { raw: message });
+          this.pushToBuffer(this.priceBuffer, raw);
+          this.server.emit('price_chart_update', raw);
         }
       }
     });
@@ -114,6 +132,18 @@ export class EventsGateway
 
   handleConnection(client: Socket): void {
     this.logger.log(`📡 Admin client connected: ${client.id}`);
+
+    // Send catch-up history so new clients start with populated charts
+    client.emit('history_sync', {
+      telemetry: [...this.telemetryBuffer],
+      thoughts: [...this.thoughtBuffer],
+      prices: [...this.priceBuffer],
+    });
+
+    this.logger.debug(
+      `📦 Sent history_sync: ${this.telemetryBuffer.length} telemetry, ` +
+      `${this.thoughtBuffer.length} thoughts, ${this.priceBuffer.length} prices`,
+    );
   }
 
   handleDisconnect(client: Socket): void {

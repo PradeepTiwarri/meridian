@@ -7,7 +7,6 @@ import { Navbar } from "@/components/Navbar";
 import { EcosystemControls } from "@/components/EcosystemControls";
 import { AboutArchitecture } from "@/components/AboutArchitecture";
 import { TelemetryProvider } from "@/providers/TelemetryProvider";
-import { CartProvider } from "@/providers/CartProvider";
 import { PriceProvider } from "@/providers/PriceProvider";
 import Link from "next/link";
 
@@ -21,10 +20,9 @@ import Link from "next/link";
 
 export default function CatalogPage() {
   return (
-    <CartProvider>
-      <PriceProvider>
-      <TelemetryProvider page="catalog">
-        <Navbar />
+    <PriceProvider>
+    <TelemetryProvider page="catalog">
+      <Navbar />
 
         <main className="flex-1">
           {/* Hero Section */}
@@ -154,8 +152,7 @@ export default function CatalogPage() {
 
         {/* Floating Demo Controls */}
         <EcosystemControls />
-      </TelemetryProvider>
-      </PriceProvider>
-    </CartProvider>
+    </TelemetryProvider>
+    </PriceProvider>
   );
 }

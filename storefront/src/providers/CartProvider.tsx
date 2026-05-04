@@ -48,17 +48,20 @@ function loadCart(): CartItem[] {
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
+  const [hydrated, setHydrated] = useState(false);
 
   // Load cart from localStorage on first client render
   useEffect(() => {
     setItems(loadCart());
+    setHydrated(true);
   }, []);
 
-  // Persist to localStorage whenever items change
+  // Persist to localStorage whenever items change — but ONLY after hydration
   useEffect(() => {
+    if (!hydrated) return;
     if (typeof window === "undefined") return;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-  }, [items]);
+  }, [items, hydrated]);
 
   const addToCart = useCallback((product: Product) => {
     setItems((prev) => {

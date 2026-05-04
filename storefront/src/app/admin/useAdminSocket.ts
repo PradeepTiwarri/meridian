@@ -115,6 +115,41 @@ export function useAdminSocket() {
       console.error("[useAdminSocket] Connection error:", err.message)
     );
 
+    // ─── Catch-up: hydrate state from backend history buffer ─────
+    socket.on(
+      "history_sync",
+      (data: {
+        telemetry: TelemetryEvent[];
+        thoughts: AgentThought[];
+        prices: PriceUpdate[];
+      }) => {
+        if (data.telemetry?.length) {
+          setTelemetry((prev) =>
+            [...prev, ...data.telemetry].slice(-MAX_EVENTS)
+          );
+          // Replay traffic bucket counters for historical telemetry
+          for (const evt of data.telemetry) {
+            if (DEMAND_EVENTS.has(evt.event_type)) bucketRef.current.demand++;
+            if (INTERVENTION_EVENTS.has(evt.event_type))
+              bucketRef.current.interventions++;
+          }
+        }
+        if (data.thoughts?.length) {
+          setThoughts((prev) =>
+            [...prev, ...data.thoughts].slice(-MAX_EVENTS)
+          );
+        }
+        if (data.prices?.length) {
+          setPriceHistory((prev) =>
+            [...prev, ...data.prices].slice(-(MAX_CHART_POINTS * 5))
+          );
+        }
+        console.log(
+          `[useAdminSocket] history_sync: ${data.telemetry?.length ?? 0}T / ${data.thoughts?.length ?? 0}A / ${data.prices?.length ?? 0}P`
+        );
+      }
+    );
+
     socket.on("live_telemetry", (data: TelemetryEvent) => {
       const product_id =
         data.product_id || (data.payload?.product_id as string) || undefined;
